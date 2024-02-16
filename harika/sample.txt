@@ -1,0 +1,42 @@
+import airflow
+from airflow import DAG
+from airflow.operators.bash_operator import BashOperator
+from datetime import timedelta,datetime
+
+
+default_args={
+        'depends_on_past': False,
+        'email': ['posimsettilakshmiharika@gmail.com'],
+        'email_on_failure': True,
+        'email_on_retry': False,
+        'retries': 3,
+        'retry_delay': timedelta(minutes=5)
+}
+
+dag = DAG(
+    'sample-airflow-test',
+    default_args=default_args,
+    description='datapipeline dag',
+    schedule_interval='10 * * * *',
+    start_date=datetime(2024, 2, 14),
+    dagrun_timeout=timedelta(minutes=20))
+
+t1 = BashOperator(
+    task_id='copygcs',
+    bash_command='gsutil cp gs://usecase3_hk/Repurchase_Product.csv gs://airflowsample-bk',
+    dag=dag
+)
+
+t2 = BashOperator(
+    task_id='bq_dataset',
+    bash_command='bq mk posimsetti_airflow',
+    dag=dag
+)
+
+t3 = BashOperator(
+    task_id='table_create',
+    bash_command='bq mk -t posimsetti_airflow.harika_airflow',
+    dag=dag
+)
+
+t1>>t2>>t3
